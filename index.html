@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Egy-Survey</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 0;
+            margin: 0;
+        }
+        .header {
+            background-color: #0ca324;
+            color: white;
+            padding: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropbtn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 10px;
+            width: 127px;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 220px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 5px;
+            top: 100%;
+            right: 0;
+            text-align: right;
+            color: black;
+            z-index: 100;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        .login-container {
+            background: white;
+            padding: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            width: 315px;
+            margin: 155px auto;
+        }
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 61px;
+        }
+        button {
+            width: 35%;
+            padding: 10px;
+            background-color: #15b638;
+            color: rgb(0, 0, 0);
+            border: none;
+            border-radius: 35px;
+            cursor: pointer;
+            transition: background-color 0.3s; 
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .footer {
+            color: rgb(0, 0, 0);
+            padding: 10px;
+            font-size: 14px;
+            text-align: center;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            text-align: center;
+        }
+        .modal input {
+            display: block;
+            margin: 10px auto;
+        }
+        button:hover{
+            transform: scale(1.1);
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        Egy-Survey
+        <div class="dropdown">
+            <button class="dropbtn">لمحة عن التطبيق</button>
+            <div class="dropdown-content">
+                <p>هذا التطبيق يساعد في تسجيل حضور وانصراف الموظفين بسهولة</p>
+                <p>يتميز بواجهة بسيطة وسهولة الاستخدام</p>
+            </div>
+        </div>
+    </div> 
+
+    <div class="login-container">
+        <h2>تسجيل الدخول</h2>
+        <input type="text" id="username" placeholder="اسم المستخدم">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <button onclick="login()">تسجيل الدخول</button>
+        <p>ليس لديك حساب؟ <a href="ENTRY.html">إنشاء حساب جديد</a></p>
+        <p id="error-message" class="error"></p>
+    </div>
+
+    <footer class="footer">&COPY; 2025 Egy-Survey. All rights reserved.</footer> 
+
+    <script>
+     async function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const scriptURL = "https://script.google.com/macros/s/AKfycbybkVhzBohbaM3y0sUMeqcuIuNHEJgAiUhrJ9Rvh_W33j_WnzSQpymKXO3hOOBh9g/exec"; // استبدل بالرابط الصحيح من Google Apps Script
+
+    if (!username || !password) {
+        document.getElementById("error-message").innerText = "يرجى إدخال اسم المستخدم وكلمة المرور!";
+        return;
+    }
+
+    try {
+        let response = await fetch(scriptURL);
+        if (!response.ok) {
+            throw new Error("فشل في جلب البيانات من Google Sheets");
+        }
+
+        let data = await response.json();
+        let users = data.users || [];
+
+        console.log("المستخدمون المسجلون:", users); // طباعة البيانات في الـ console للتأكد من استرجاعها
+
+        let userExists = users.some(user => 
+            typeof user.password === "string" && // تأكد أن كلمة المرور نصية
+            user.username.trim() === username && 
+            user.password.trim() === password
+        );
+
+        if (userExists) {
+            localStorage.setItem("username", username);
+            alert("تم تسجيل الدخول بنجاح!");
+            window.location.href = "Attendance.html";
+        } else {
+            document.getElementById("error-message").innerText = "اسم المستخدم أو كلمة المرور غير صحيحة!";
+        }
+    } catch (error) {
+        console.error("خطأ أثناء تسجيل الدخول:", error);
+        alert("تعذر الاتصال بالخادم، تأكد من أن Google Apps Script يعمل بشكل صحيح!");
+    }
+}
+
+
+    </script>
+</body>
+</html>

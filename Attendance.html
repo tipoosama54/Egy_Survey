@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #007BFF;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 23px;
+        }
+        .header button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        table {
+            width: 80%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        button {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        #check-in {
+            background-color: #28a745;
+            color: white;
+        }
+        #check-out {
+            background-color: #dc3545;
+            color: white;
+        }
+        button:hover{
+            transform: scale(1.1);
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button id="logout">تسجيل الخروج</button>
+        <span id="username-display"></span>
+    </div>
+    <div class="container">
+        <div class="buttons">
+            <button id="check-in">حضور</button>
+            <button id="check-out">انصراف</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>التاريخ</th>
+                    <th>الحالة</th>
+                    <th>الساعة</th>
+                    <th>اليوم</th>
+                    <th>الاسم</th>
+                </tr>
+            </thead>
+            <tbody id="attendance-table"></tbody>
+        </table>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let logoutButton = document.getElementById("logout");
+            let username = localStorage.getItem("username");
+
+            if (!username) {
+                window.location.href = "index.html";
+            }
+            document.getElementById("username-display").innerText = username;
+
+            let checkInButton = document.getElementById("check-in");
+            let checkOutButton = document.getElementById("check-out");
+            let table = document.getElementById("attendance-table");
+
+            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzjRt56DniUptOhOmdtI1nfhojTuvMr6nhSgciWjeqKIq9WYDqBXzrIpVMxoIfWQHCK/exec"; // 🔹 استبدل بالرابط الصحيح من Google Apps Script
+
+            function getUserStorageKey() {
+                return `attendance_records_${username}`;
+            }
+
+            function loadAttendanceRecords() {
+                let records = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
+                table.innerHTML = "";
+                records.forEach(addRowToTable);
+            }
+
+            function addRowToTable(data) {
+                let row = table.insertRow();
+                row.insertCell(0).innerText = data.date;
+                row.insertCell(1).innerText = data.status;
+                row.insertCell(2).innerText = data.time;
+                row.insertCell(3).innerText = data.day;
+                row.insertCell(4).innerText = data.name;
+            }
+
+            function registerAttendance(status) {
+    let now = new Date();
+    let attendanceData = {
+        name: username.split(" ").slice(0, 2).join(" "),
+        day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(now),
+        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: status,
+        date: now.toLocaleDateString()
+    };
+
+    // تحديث البيانات محليًا
+    let userRecords = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
+    userRecords.push(attendanceData);
+    localStorage.setItem(getUserStorageKey(), JSON.stringify(userRecords));
+
+    addRowToTable(attendanceData);
+
+    // 🔹 إرسال البيانات إلى Google Sheets باستخدام fetch
+    fetch(GOOGLE_SHEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(attendanceData),
+        mode: "no-cors"
+    })
+    .then(() => {
+        console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
+        alert(`تم تسجيل ${status} بنجاح ✅`);
+    })
+    .catch(error => console.error("⚠️ Fetch Error:", error));
+}
+
+            checkInButton.addEventListener("click", function() {
+                registerAttendance("حضور");
+            });
+
+            checkOutButton.addEventListener("click", function() {
+                registerAttendance("انصراف");
+            });
+
+            loadAttendanceRecords();
+
+            logoutButton.addEventListener("click", function() {
+                localStorage.removeItem("username");
+                window.location.href = "index.html";
+            });
+        });
+    </script>
+</body>
+</html>
