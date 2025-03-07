@@ -10,7 +10,6 @@
             text-align: center;
             margin: 20px;
             background-color: #f9f9f9;
-            direction: rtl;
         }
         .header {
             display: flex;
@@ -22,7 +21,6 @@
             font-size: 18px;
             font-weight: bold;
             border-radius: 23px;
-            direction: ltr;
         }
         .header button {
             background-color: #dc3545;
@@ -96,123 +94,98 @@
         <table>
             <thead>
                 <tr>
-                    <th>الأسم</th>
-                    <th>اليوم</th>
                     <th>التاريخ</th>
-                    <th>وقت الحضور</th>
-                    <th>وقت الأنصراف</th>
+                    <th>الحالة</th>
+                    <th>الساعة</th>
+                    <th>اليوم</th>
+                    <th>الاسم</th>
                 </tr>
             </thead>
             <tbody id="attendance-table"></tbody>
         </table>
     </div>
+    
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             let logoutButton = document.getElementById("logout");
             let username = localStorage.getItem("username");
-    
+
             if (!username) {
                 window.location.href = "index.html";
             }
             document.getElementById("username-display").innerText = username;
-    
+
             let checkInButton = document.getElementById("check-in");
             let checkOutButton = document.getElementById("check-out");
             let table = document.getElementById("attendance-table");
-    
-            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzbuoc5c9CERQWaDO1I3HevjMBMHDSCYQgaz4B85_CkCy3k1mZYlKNsrwBxUPPsUWYG3g/exec"; // استبدل بالرابط الصحيح من Google Apps Script
-    
+
+            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzbuoc5c9CERQWaDO1I3HevjMBMHDSCYQgaz4B85_CkCy3k1mZYlKNsrwBxUPPsUWYG3g/exec"; // 🔹 استبدل بالرابط الصحيح من Google Apps Script
+
             function getUserStorageKey() {
                 return `attendance_records_${username}`;
             }
-    
+
             function loadAttendanceRecords() {
                 let records = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
                 table.innerHTML = "";
                 records.forEach(addRowToTable);
             }
-    
+
             function addRowToTable(data) {
                 let row = table.insertRow();
-                row.insertCell(0).innerText = data.name;          // ✅ الاسم
-                row.insertCell(1).innerText = data.day;           // ✅ اليوم
-                row.insertCell(2).innerText = data.date;          // ✅ التاريخ
-                row.insertCell(3).innerText = data.checkInTime ? data.checkInTime : "❌ لم يسجل"; // ✅ وقت الحضور
-                row.insertCell(4).innerText = data.checkOutTime ? data.checkOutTime : "❌ لم يسجل"; // ✅ وقت الانصراف
+                row.insertCell(0).innerText = data.date;
+                row.insertCell(1).innerText = data.status;
+                row.insertCell(2).innerText = data.time;
+                row.insertCell(3).innerText = data.day;
+                row.insertCell(4).innerText = data.name;
             }
-    
+
             function registerAttendance(status) {
-                let now = new Date();
-                let currentDate = now.toLocaleDateString("ar-EG");
-                let currentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                let dayName = new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(now);
-                let shortName = username.split(" ").slice(0, 2).join(" ");
-    
-                let userRecords = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
-    
-                let existingRecordIndex = userRecords.findIndex(record => record.date === currentDate);
-    
-                if (existingRecordIndex !== -1) {
-                    if (status === "انصراف") {
-                        if (!userRecords[existingRecordIndex].checkOutTime) {
-                            userRecords[existingRecordIndex].checkOutTime = currentTime;
-                        } else {
-                            alert("⚠️ تم تسجيل الانصراف مسبقًا!");
-                            return;
-                        }
-                    } else {
-                        alert("⚠️ تم تسجيل الحضور مسبقًا!");
-                        return;
-                    }
-                } else {
-                    let newRecord = {
-                        name: shortName,
-                        day: dayName,
-                        date: currentDate,
-                        checkInTime: status === "حضور" ? currentTime : "",
-                        checkOutTime: status === "انصراف" ? currentTime : ""
-                    };
-                    userRecords.push(newRecord);
-                }
-    
-                localStorage.setItem(getUserStorageKey(), JSON.stringify(userRecords));
-                loadAttendanceRecords();
-    
-                fetch(GOOGLE_SHEET_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(userRecords),
-                    mode: "no-cors"
-                })
-                .then(() => {
-                    console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
-                    alert(`تم تسجيل ${status} بنجاح ✅`);
-                })
-                .catch(error => console.error("⚠️ Fetch Error:", error));
-            }
-    
+    let now = new Date();
+    let attendanceData = {
+        name: username.split(" ").slice(0, 2).join(" "),
+        day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(now),
+        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: status,
+        date: now.toLocaleDateString()
+    };
+
+    // تحديث البيانات محليًا
+    let userRecords = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
+    userRecords.push(attendanceData);
+    localStorage.setItem(getUserStorageKey(), JSON.stringify(userRecords));
+
+    addRowToTable(attendanceData);
+
+    // 🔹 إرسال البيانات إلى Google Sheets باستخدام fetch
+    fetch(GOOGLE_SHEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(attendanceData),
+        mode: "no-cors"
+    })
+    .then(() => {
+        console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
+        alert(`تم تسجيل ${status} بنجاح ✅`);
+    })
+    .catch(error => console.error("⚠️ Fetch Error:", error));
+}
+
             checkInButton.addEventListener("click", function() {
                 registerAttendance("حضور");
             });
-    
+
             checkOutButton.addEventListener("click", function() {
                 registerAttendance("انصراف");
             });
-    
+
             loadAttendanceRecords();
-    
+
             logoutButton.addEventListener("click", function() {
                 localStorage.removeItem("username");
                 window.location.href = "index.html";
             });
         });
     </script>
-    
-    
-    
-   
-        
-    
-    
 </body>
 </html>
