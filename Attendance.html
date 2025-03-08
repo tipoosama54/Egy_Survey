@@ -10,6 +10,7 @@
             text-align: center;
             margin: 20px;
             background-color: #f9f9f9;
+            direction: rtl;
         }
         .header {
             display: flex;
@@ -21,6 +22,7 @@
             font-size: 18px;
             font-weight: bold;
             border-radius: 23px;
+            direction: ltr;
         }
         .header button {
             background-color: #dc3545;
@@ -94,9 +96,9 @@
         <table>
             <thead>
                 <tr>
-                    <th>التاريخ</th>
+                    <th>الأسم</th>
                     <th>اليوم</th>
-                    <th>الاسم</th>
+                    <th>التاريخ</th>
                     <th>وقت الحضور</th>
                     <th>وقت الانصراف</th>
                 </tr>
@@ -119,7 +121,7 @@
             let checkOutButton = document.getElementById("check-out");
             let table = document.getElementById("attendance-table");
 
-            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxF06R3JVtE8lfB3LAi0RayHkzR10yA0Q3x4P6V4nAV5EgzdZDCSj602mvvxl_xJD643A/exec";
+            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxPKOA4NQIKbmZjSVlCMCh47ibg_pKUI7ruxv5h_yoB5aClFiYx-ohDZcjqg8E3YOLTIw/exec";
 
             function getUserStorageKey() {
                 return `attendance_records_${username}`;
@@ -133,9 +135,9 @@
 
             function addRowToTable(data) {
                 let row = table.insertRow();
-                row.insertCell(0).innerText = data.date;
+                row.insertCell(0).innerText = data.name;
                 row.insertCell(1).innerText = data.day;
-                row.insertCell(2).innerText = data.name;
+                row.insertCell(2).innerText = data.date;
                 row.insertCell(3).innerText = data.checkIn || "";
                 row.insertCell(4).innerText = data.checkOut || "";
             }
