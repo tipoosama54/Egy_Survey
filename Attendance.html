@@ -111,28 +111,32 @@
         document.addEventListener("DOMContentLoaded", function() {
             let logoutButton = document.getElementById("logout");
             let username = localStorage.getItem("username");
-
+    
             if (!username) {
                 window.location.href = "index.html";
             }
             document.getElementById("username-display").innerText = username;
-
+    
             let checkInButton = document.getElementById("check-in");
             let checkOutButton = document.getElementById("check-out");
             let table = document.getElementById("attendance-table");
-
-            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxPKOA4NQIKbmZjSVlCMCh47ibg_pKUI7ruxv5h_yoB5aClFiYx-ohDZcjqg8E3YOLTIw/exec";
-
+    
+            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbykY-aZ1-r-saZXJ0iZ8DGvc7nbt8w0N549r4GkTuEaXx7kSrmm8HKemZl67fOG9WQ4SQ/exec";
+    
             function getUserStorageKey() {
                 return `attendance_records_${username}`;
             }
-
+    
+            function getLastRecordedDateKey() {
+                return `last_recorded_date_${username}`;
+            }
+    
             function loadAttendanceRecords() {
                 let records = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
                 table.innerHTML = "";
                 records.forEach(addRowToTable);
             }
-
+    
             function addRowToTable(data) {
                 let row = table.insertRow();
                 row.insertCell(0).innerText = data.name;
@@ -141,13 +145,20 @@
                 row.insertCell(3).innerText = data.checkIn || "";
                 row.insertCell(4).innerText = data.checkOut || "";
             }
-
+    
             function registerAttendance(status) {
                 let now = new Date();
+                let today = now.toLocaleDateString(); // تاريخ اليوم
                 let records = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
-                let today = now.toLocaleDateString();
+                let lastRecordedDate = localStorage.getItem(getLastRecordedDateKey());
+    
+                if (lastRecordedDate !== today) {
+                    // بدأ يوم جديد، السماح بتسجيل حضور جديد
+                    localStorage.setItem(getLastRecordedDateKey(), today);
+                }
+    
                 let lastRecord = records.find(r => r.date === today);
-
+    
                 if (status === "حضور") {
                     if (lastRecord) {
                         alert("❌ تم تسجيل الحضور بالفعل اليوم!");
@@ -162,22 +173,23 @@
                     };
                     records.push(attendanceData);
                     sendToGoogleSheets(attendanceData);
-                } else if (status === "انصراف" && lastRecord) {
+                } else if (status === "انصراف") {
+                    if (!lastRecord) {
+                        alert("❌ يجب تسجيل الحضور أولاً!");
+                        return;
+                    }
                     if (lastRecord.checkOut) {
                         alert("❌ تم تسجيل الانصراف بالفعل اليوم!");
                         return;
                     }
                     lastRecord.checkOut = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     sendToGoogleSheets({ ...lastRecord, update: true });
-                } else {
-                    alert("❌ يجب تسجيل الحضور أولاً!");
-                    return;
                 }
-
+    
                 localStorage.setItem(getUserStorageKey(), JSON.stringify(records));
                 loadAttendanceRecords();
             }
-
+    
             function sendToGoogleSheets(data) {
                 fetch(GOOGLE_SHEET_URL, {
                     method: "POST",
@@ -188,22 +200,23 @@
                     console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
                 }).catch(error => console.error("⚠️ Fetch Error:", error));
             }
-
+    
             checkInButton.addEventListener("click", function() {
                 registerAttendance("حضور");
             });
-
+    
             checkOutButton.addEventListener("click", function() {
                 registerAttendance("انصراف");
             });
-
+    
             loadAttendanceRecords();
-
+    
             logoutButton.addEventListener("click", function() {
                 localStorage.removeItem("username");
                 window.location.href = "index.html";
             });
         });
     </script>
+    
 </body>
 </html>
