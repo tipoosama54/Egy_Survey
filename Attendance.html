@@ -76,7 +76,7 @@
             background-color: #dc3545;
             color: white;
         }
-        button:hover{
+        button:hover {
             transform: scale(1.1);
             box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
             opacity: 0.9;
@@ -106,59 +106,49 @@
             <tbody id="attendance-table"></tbody>
         </table>
     </div>
-    
+
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             let logoutButton = document.getElementById("logout");
             let username = localStorage.getItem("username");
-    
+
             if (!username) {
                 window.location.href = "index.html";
             }
             document.getElementById("username-display").innerText = username;
-    
+
             let checkInButton = document.getElementById("check-in");
             let checkOutButton = document.getElementById("check-out");
             let table = document.getElementById("attendance-table");
-    
-            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbykY-aZ1-r-saZXJ0iZ8DGvc7nbt8w0N549r4GkTuEaXx7kSrmm8HKemZl67fOG9WQ4SQ/exec";
-    
+
+            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxZZsKEU4Y9MQNFZjHCIXCSef7snSz99JEUxnEHCwJSfoVAz_mIcwr4D43qYDsIjhQ8cg/exec"; // ✅ ضع رابط API هنا
+
             function getUserStorageKey() {
                 return `attendance_records_${username}`;
             }
-    
-            function getLastRecordedDateKey() {
-                return `last_recorded_date_${username}`;
-            }
-    
+
             function loadAttendanceRecords() {
                 let records = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
                 table.innerHTML = "";
                 records.forEach(addRowToTable);
             }
-    
+
             function addRowToTable(data) {
                 let row = table.insertRow();
                 row.insertCell(0).innerText = data.name;
                 row.insertCell(1).innerText = data.day;
                 row.insertCell(2).innerText = data.date;
                 row.insertCell(3).innerText = data.checkIn || "";
-                row.insertCell(4).innerText = data.checkOut || "";
+                row.insertCell(4).innerText = data.checkOut || ""; // ✅ تأكد من عرض الانصراف في العمود E
             }
-    
+
             function registerAttendance(status) {
                 let now = new Date();
-                let today = now.toLocaleDateString(); // تاريخ اليوم
+                let today = now.toLocaleDateString();
                 let records = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
-                let lastRecordedDate = localStorage.getItem(getLastRecordedDateKey());
-    
-                if (lastRecordedDate !== today) {
-                    // بدأ يوم جديد، السماح بتسجيل حضور جديد
-                    localStorage.setItem(getLastRecordedDateKey(), today);
-                }
-    
+
                 let lastRecord = records.find(r => r.date === today);
-    
+
                 if (status === "حضور") {
                     if (lastRecord) {
                         alert("❌ تم تسجيل الحضور بالفعل اليوم!");
@@ -172,7 +162,7 @@
                         checkOut: ""
                     };
                     records.push(attendanceData);
-                    sendToGoogleSheets(attendanceData);
+                    sendToGoogleSheets(attendanceData, false);
                 } else if (status === "انصراف") {
                     if (!lastRecord) {
                         alert("❌ يجب تسجيل الحضور أولاً!");
@@ -183,40 +173,42 @@
                         return;
                     }
                     lastRecord.checkOut = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    sendToGoogleSheets({ ...lastRecord, update: true });
+
+                    sendToGoogleSheets(lastRecord, true);
                 }
-    
+
                 localStorage.setItem(getUserStorageKey(), JSON.stringify(records));
                 loadAttendanceRecords();
             }
-    
-            function sendToGoogleSheets(data) {
+
+            function sendToGoogleSheets(data, isUpdate) {
+                let requestData = { ...data, update: isUpdate };
+
                 fetch(GOOGLE_SHEET_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data),
+                    body: JSON.stringify(requestData),
                     mode: "no-cors"
                 }).then(() => {
                     console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
                 }).catch(error => console.error("⚠️ Fetch Error:", error));
             }
-    
+
             checkInButton.addEventListener("click", function() {
                 registerAttendance("حضور");
             });
-    
+
             checkOutButton.addEventListener("click", function() {
                 registerAttendance("انصراف");
             });
-    
+
             loadAttendanceRecords();
-    
+
             logoutButton.addEventListener("click", function() {
                 localStorage.removeItem("username");
                 window.location.href = "index.html";
             });
         });
     </script>
-    
 </body>
 </html>
