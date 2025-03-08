@@ -76,8 +76,8 @@
         }
         button:hover{
             transform: scale(1.1);
-        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-        opacity: 0.9;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0.9;
         }
     </style>
 </head>
@@ -95,10 +95,10 @@
             <thead>
                 <tr>
                     <th>التاريخ</th>
-                    <th>الحالة</th>
-                    <th>الساعة</th>
                     <th>اليوم</th>
                     <th>الاسم</th>
+                    <th>وقت الحضور</th>
+                    <th>وقت الانصراف</th>
                 </tr>
             </thead>
             <tbody id="attendance-table"></tbody>
@@ -119,7 +119,7 @@
             let checkOutButton = document.getElementById("check-out");
             let table = document.getElementById("attendance-table");
 
-            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzbuoc5c9CERQWaDO1I3HevjMBMHDSCYQgaz4B85_CkCy3k1mZYlKNsrwBxUPPsUWYG3g/exec"; // 🔹 استبدل بالرابط الصحيح من Google Apps Script
+            const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxF06R3JVtE8lfB3LAi0RayHkzR10yA0Q3x4P6V4nAV5EgzdZDCSj602mvvxl_xJD643A/exec";
 
             function getUserStorageKey() {
                 return `attendance_records_${username}`;
@@ -134,42 +134,58 @@
             function addRowToTable(data) {
                 let row = table.insertRow();
                 row.insertCell(0).innerText = data.date;
-                row.insertCell(1).innerText = data.status;
-                row.insertCell(2).innerText = data.time;
-                row.insertCell(3).innerText = data.day;
-                row.insertCell(4).innerText = data.name;
+                row.insertCell(1).innerText = data.day;
+                row.insertCell(2).innerText = data.name;
+                row.insertCell(3).innerText = data.checkIn || "";
+                row.insertCell(4).innerText = data.checkOut || "";
             }
 
             function registerAttendance(status) {
-    let now = new Date();
-    let attendanceData = {
-        name: username.split(" ").slice(0, 2).join(" "),
-        day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(now),
-        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        status: status,
-        date: now.toLocaleDateString()
-    };
+                let now = new Date();
+                let records = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
+                let today = now.toLocaleDateString();
+                let lastRecord = records.find(r => r.date === today);
 
-    // تحديث البيانات محليًا
-    let userRecords = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
-    userRecords.push(attendanceData);
-    localStorage.setItem(getUserStorageKey(), JSON.stringify(userRecords));
+                if (status === "حضور") {
+                    if (lastRecord) {
+                        alert("❌ تم تسجيل الحضور بالفعل اليوم!");
+                        return;
+                    }
+                    let attendanceData = {
+                        name: username.split(" ").slice(0, 2).join(" "),
+                        day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(now),
+                        date: today,
+                        checkIn: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        checkOut: ""
+                    };
+                    records.push(attendanceData);
+                    sendToGoogleSheets(attendanceData);
+                } else if (status === "انصراف" && lastRecord) {
+                    if (lastRecord.checkOut) {
+                        alert("❌ تم تسجيل الانصراف بالفعل اليوم!");
+                        return;
+                    }
+                    lastRecord.checkOut = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    sendToGoogleSheets({ ...lastRecord, update: true });
+                } else {
+                    alert("❌ يجب تسجيل الحضور أولاً!");
+                    return;
+                }
 
-    addRowToTable(attendanceData);
+                localStorage.setItem(getUserStorageKey(), JSON.stringify(records));
+                loadAttendanceRecords();
+            }
 
-    // 🔹 إرسال البيانات إلى Google Sheets باستخدام fetch
-    fetch(GOOGLE_SHEET_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(attendanceData),
-        mode: "no-cors"
-    })
-    .then(() => {
-        console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
-        alert(`تم تسجيل ${status} بنجاح ✅`);
-    })
-    .catch(error => console.error("⚠️ Fetch Error:", error));
-}
+            function sendToGoogleSheets(data) {
+                fetch(GOOGLE_SHEET_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data),
+                    mode: "no-cors"
+                }).then(() => {
+                    console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
+                }).catch(error => console.error("⚠️ Fetch Error:", error));
+            }
 
             checkInButton.addEventListener("click", function() {
                 registerAttendance("حضور");
