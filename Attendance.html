@@ -183,17 +183,19 @@
             }
 
             function sendToGoogleSheets(data, isUpdate) {
-                let requestData = { ...data, updateCheckOut: isUpdate };
+    let requestData = { ...data, updateCheckOut: isUpdate };
 
-                fetch(GOOGLE_SHEET_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(requestData),
-                    mode: "no-cors"
-                }).then(() => {
-                    console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
-                }).catch(error => console.error("⚠ Fetch Error:", error));
-            }
+    fetch(GOOGLE_SHEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestData),
+        mode: "no-cors"
+    }).then(() => {
+        console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
+    }).catch(error => console.error("⚠ Fetch Error:", error));
+}
+
+
 
             function resetAttendanceAtMidnight() {
                 setInterval(() => {
