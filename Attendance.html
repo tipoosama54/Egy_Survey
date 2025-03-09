@@ -121,7 +121,7 @@
     let checkOutButton = document.getElementById("check-out");
     let table = document.getElementById("attendance-table");
 
-    const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbw2gt8U16WIMl7FbZmQpGha4GdwHowcj264Rs9pe0rruCKDNGlOS8SekDhGuY_Rm4jKuA/exec";
+    const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxz-HLjkPCsgcZ9h2q_abmLm3RAMBfV4yloJZOKeyrfMctjfcfRNWAZmOJyKXTl8gn5RA/exec";
 
     function getUserStorageKey() {
         return `attendance_records_${username}`;
@@ -143,42 +143,57 @@
     }
 
     function registerAttendance(status) {
-        let now = new Date();
-        let today = now.toLocaleDateString();
-        let records = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
-        let lastRecord = records.find(r => r.date === today);
+    let now = new Date();
+    let today = now.toLocaleDateString();
+    let records = JSON.parse(localStorage.getItem(getUserStorageKey())) || [];
+    let lastRecord = records.find(r => r.date === today);
 
-        if (status === "حضور") {
-            if (lastRecord) {
-                alert("❌ تم تسجيل الحضور بالفعل اليوم!");
-                return;
-            }
-            let attendanceData = {
-                name: username.split(" ").slice(0, 2).join(" "),
-                day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(now),
-                date: today,
-                checkIn: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                checkOut: ""
-            };
-            records.push(attendanceData);
-            sendToGoogleSheets(attendanceData, false);
-        } else if (status === "انصراف") {
-            if (!lastRecord) {
-                alert("❌ يجب تسجيل الحضور أولاً!");
-                return;
-            }
-            if (lastRecord.checkOut) {
-                alert("❌ تم تسجيل الانصراف بالفعل اليوم!");
-                return;
-            }
-            lastRecord.checkOut = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            sendToGoogleSheets(lastRecord, true);
+    if (status === "حضور") {
+        if (lastRecord) {
+            alert("❌ تم تسجيل الحضور بالفعل اليوم!");
+            return;
         }
+        let attendanceData = {
+            name: username.split(" ").slice(0, 2).join(" "),
+            day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(now),
+            date: today,
+            checkIn: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            checkOut: ""
+        };
+        records.push(attendanceData);
+        sendToGoogleSheets(attendanceData, false);
+    } else if (status === "انصراف") {
+        if (!lastRecord) {
+            alert("❌ يجب تسجيل الحضور أولاً!");
+            return;
+        }
+        if (lastRecord.checkOut) {
+            alert("❌ تم تسجيل الانصراف بالفعل اليوم!");
+            return;
+        }
+        lastRecord.checkOut = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        localStorage.setItem(getUserStorageKey(), JSON.stringify(records));
-        loadAttendanceRecords();
+        // إرسال التحديث إلى Google Sheets وتحديد أنه تحديث فقط
+        sendToGoogleSheets(lastRecord, true);
     }
+
+    localStorage.setItem(getUserStorageKey(), JSON.stringify(records));
+    loadAttendanceRecords();
+}
+
+function sendToGoogleSheets(data, isUpdate) {
+    let requestData = { ...data, updateCheckOut: isUpdate };
+
+    fetch(GOOGLE_SHEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestData),
+        mode: "no-cors"
+    }).then(() => {
+        console.log("✅ البيانات أُرسلت بنجاح إلى Google Sheets");
+    }).catch(error => console.error("⚠️ Fetch Error:", error));
+}
+
 
     function sendToGoogleSheets(data, isUpdate) {
         let requestData = { ...data, update: isUpdate };
