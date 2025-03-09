@@ -193,16 +193,18 @@
         }).catch(error => console.error("⚠️ Fetch Error:", error));
     }
 
-    function resetAttendanceAtMidnight() {
-        setInterval(() => {
-            let now = new Date();
-            if (now.getHours() === 0 && now.getMinutes() === 0) {
-                localStorage.removeItem(getUserStorageKey());
-                loadAttendanceRecords();
-                console.log("🕛 تم إعادة ضبط الحضور بعد منتصف الليل");
-            }
-        }, 60000); // يتحقق كل دقيقة
-    }
+    function resetButtonsAtMidnight() {
+    setInterval(() => {
+        let now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() === 0) {
+            localStorage.removeItem("attendance_locked"); // إلغاء القفل اليومي
+            checkInButton.disabled = false; // تفعيل زر الحضور
+            checkOutButton.disabled = false; // تفعيل زر الانصراف
+            console.log("🕛 تم إعادة تفعيل أزرار الحضور والانصراف بعد منتصف الليل");
+        }
+    }, 60000); // التحقق كل دقيقة
+}
+
 
     checkInButton.addEventListener("click", function() {
         registerAttendance("حضور");
